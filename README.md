@@ -1,4 +1,4 @@
-# UCSD CSI Chatbot — Short Answers Version (no API key, PDF-safe)
+# UCSD CSI Chatbot
 
 This project is a fully functional chatbot dedicated to the **UC San Diego Center for Student Involvement (CSI)**.
 
