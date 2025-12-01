@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>UCSD CSI Chatbot</title>
+  <style>
+    :root {
+      --bg:#050716;
+      --card:#11172e;
+      --text:#e8ecff;
+      --muted:#a9b1d6;
+      --accent:#6ea8fe;
+      --accent-soft:rgba(110,168,254,.18);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:radial-gradient(circle at top,#1b264c,#050716);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{
+      max-width:980px;
+      margin:32px auto;
+      padding:0 16px 40px;
+    }
+    .header{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .badge{
+      background:var(--accent-soft);
+      border:1px solid rgba(110,168,254,.5);
+      color:#d8e6ff;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+    }
+    .tagline{
+      font-size:13px;
+      color:var(--muted);
+    }
+    .status-pill{
+      margin-left:auto;
+      font-size:11px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      color:var(--muted);
+    }
+    .card{
+      background:var(--card);
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      box-shadow:0 18px 45px rgba(0,0,0,.55);
+    }
+    .chat{
+      height:540px;
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      overflow:auto;
+      background:radial-gradient(circle at top left,#1f2955,#050716);
+    }
+    .bubble{
+      max-width:82%;
+      padding:10px 13px;
+      border-radius:14px;
+      line-height:1.5;
+      font-size:14px;
+      position:relative;
+      white-space:pre-wrap;
+      animation:fadeIn .15s ease-out;
+    }
+    .bubble.user{
+      align-self:flex-end;
+      background:#1f2a4d;
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .bubble.bot{
+      align-self:flex-start;
+      background:#0c1230;
+      border:1px solid rgba(255,255,255,.18);
+    }
+    .bubble .intent-tag{
+      display:inline-block;
+      font-size:11px;
+      padding:2px 6px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      margin-bottom:6px;
+      color:var(--muted);
+    }
+    .bubble .links{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .bubble .links a{
+      color:#9ec5ff;
+      text-decoration:none;
+    }
+    .bubble .links a:hover{
+      text-decoration:underline;
+    }
+    .bubble .foot{
+      margin-top:6px;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .dot{
+      display:inline-block;
+      width:4px;
+      height:4px;
+      margin-right:3px;
+      border-radius:50%;
+      background:#d1d9ff;
+      animation:blink 1s infinite;
+    }
+    .dot:nth-child(2){ animation-delay:.2s; }
+    .dot:nth-child(3){ animation-delay:.4s; }
+    @keyframes blink{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
+    .input{
+      display:flex;
+      gap:10px;
+      padding:12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.30);
+      backdrop-filter:blur(10px);
+    }
+    input[type="text"]{
+      flex:1;
+      padding:11px 13px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:#05091f;
+      color:var(--text);
+      font-size:14px;
+      outline:none;
+    }
+    input[type="text"]::placeholder{ color:rgba(169,177,214,.8); }
+    button{
+      padding:11px 16px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:#6ea8fe;
+      color:#071224;
+      font-weight:600;
+      font-size:14px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    button:hover{ filter:brightness(1.06); }
+    .footer{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .footer a{ color:#c5d7ff; }
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      font-size:11px;
+    }
+    @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="badge">UCSD Center for Student Involvement — Chatbot</div>
+      <div class="tagline">
+        Short, focused answers using the official CSI website (orgs, TAP, finances, service, CCL, SFL, EDI, staff, jobs, events).
+      </div>
+      <div id="status-pill" class="status-pill">Checking index…</div>
+    </div>
+
+    <div class="card">
+      <div id="chat" class="chat" aria-live="polite"></div>
+      <div class="input">
+        <input id="q" type="text"
+          placeholder="Ask: “what are CSI front desk hours?”, “how do I fill out a TAP form?”, “how do I register my org?”, etc."/>
+        <button id="send">Send</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      If I’m unsure, I’ll suggest contacting the front desk:
+      <span class="pill">858-534-1733</span> ·
+      <a href="mailto:csifrontdesk@ucsd.edu">csifrontdesk@ucsd.edu</a> ·
+      Main site:
+      <a href="https://getinvolved.ucsd.edu" target="_blank" rel="noopener">getinvolved.ucsd.edu</a>
+    </div>
+  </div>
+
+<script>
+const API = "";
+const chatEl = document.getElementById("chat");
+const qEl = document.getElementById("q");
+const sendEl = document.getElementById("send");
+const statusPill = document.getElementById("status-pill");
+
+function bubble(role, html){
+  const div = document.createElement("div");
+  div.className = "bubble " + role;
+  div.innerHTML = html;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+function userBubble(text){ bubble("user", text); }
+
+let typingEl = null;
+function showTyping(){
+  if (typingEl) return;
+  typingEl = document.createElement("div");
+  typingEl.className = "bubble bot";
+  typingEl.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  chatEl.appendChild(typingEl);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+function hideTyping(){
+  if (!typingEl) return;
+  typingEl.remove();
+  typingEl = null;
+}
+function escapeHtml(str){
+  return str.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+function intentLabel(intent){
+  if (!intent) return "CSI information";
+  const map = {
+    hours:"Front desk hours",
+    location:"Location & directions",
+    advisor:"Advising & SILCs",
+    tap:"Event planning & TAP",
+    register:"Registering your org",
+    finances:"Finances & funding",
+    service:"Service & community programs",
+    leadership:"Communication & Leadership",
+    sfl:"Fraternity & Sorority Life",
+    edi:"Equity, Diversity & Inclusion",
+    jobs:"Student jobs at CSI"
+  };
+  return map[intent] || "CSI information";
+}
+function formatAnswer(answerText){
+  return escapeHtml(answerText).replace(/\n/g, "<br>");
+}
+function renderReply(payload){
+  if (!payload || !payload.ok){
+    bubble("bot",
+      "Something went wrong on my side. If this keeps happening, please reach out directly to CSI at 858-534-1733."
+    );
+    return;
+  }
+  const { intent, answerText, sources, fallback } = payload;
+
+  if (!answerText){
+    const fbPhone = (fallback && fallback.phone) || "858-534-1733";
+    const fbEmail = (fallback && fallback.email) || "csifrontdesk@ucsd.edu";
+    bubble("bot",
+      "I couldn’t confidently match that to anything on the CSI site.\n\n" +
+      "At this point your best option is to reach out directly so a staff member can help with the specifics.\n\n" +
+      `<span class="foot">📞 ${fbPhone} · ✉️ <a href="mailto:${fbEmail}">${fbEmail}</a></span>`
+    );
+    return;
+  }
+
+  const titleTag = "<span class='intent-tag'>" + intentLabel(intent) + " • CSI site</span>";
+
+  const linksHtml = (sources || []).slice(0,3).map(s => {
+    const t = escapeHtml(s.title || s.url);
+    return `<a href="${s.url}" target="_blank" rel="noopener">${t}</a>`;
+  }).join(" • ");
+
+  const fbPhone = (fallback && fallback.phone) || "858-534-1733";
+  const fbEmail = (fallback && fallback.email) || "csifrontdesk@ucsd.edu";
+
+  bubble("bot",
+    titleTag +
+    "<div style='margin-top:4px;'>" + formatAnswer(answerText) + "</div>" +
+    (linksHtml
+      ? `<div class="links"><strong>Helpful CSI pages:</strong><br>${linksHtml}</div>`
+      : ""
+    ) +
+    `<div class="foot">All of this is based on the official CSI website. For anything unclear or special-case, you can always contact the CSI front desk at 📞 <b>${fbPhone}</b> or ✉️ <a href="mailto:${fbEmail}">${fbEmail}</a>.</div>`
+  );
+}
+
+async function fetchHealth(){
+  try{
+    const r = await fetch(API + "/health");
+    const j = await r.json();
+    if (j.ok){
+      statusPill.textContent = "Index: " + j.pages + " pages • Local search";
+    }else{
+      statusPill.textContent = "Index: not ready";
+    }
+  }catch{
+    statusPill.textContent = "Server offline";
+  }
+}
+
+async function ask(question){
+  userBubble(question);
+  showTyping();
+  try{
+    const r = await fetch(API + "/chat?q=" + encodeURIComponent(question));
+    const j = await r.json();
+    hideTyping();
+    renderReply(j);
+  }catch(e){
+    hideTyping();
+    bubble("bot",
+      "I couldn’t reach my server just now.\n\n" +
+      "If you’re testing this locally, make sure `npm start` is running. Otherwise, feel free to reach out directly at 858-534-1733 or csifrontdesk@ucsd.edu."
+    );
+  }
+}
+
+function handleSend(){
+  const text = qEl.value.trim();
+  if (!text) return;
+  qEl.value = "";
+  ask(text);
+  qEl.focus();
+}
+
+sendEl.addEventListener("click", handleSend);
+qEl.addEventListener("keydown", e => { if (e.key === "Enter") handleSend(); });
+
+// initial bot message
+bubble("bot",
+  "Hi! I’m the CSI helper chatbot. 👋\n\n" +
+  "I use the official UCSD Center for Student Involvement website to answer questions in just a few sentences.\n" +
+  "Ask me things like:\n" +
+  "• how to fill out a TAP form\n" +
+  "• how to register your student org\n" +
+  "• funding and SLBO for orgs\n" +
+  "• Alternative Breaks and service programs\n" +
+  "• iLead and leadership workshops\n" +
+  "• Fraternity & Sorority Life, and more."
+);
+
+fetchHealth();
+</script>
+</body>
+</html>

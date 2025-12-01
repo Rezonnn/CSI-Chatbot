@@ -1,0 +1,22 @@
+{
+  "name": "ucsd-csi-chatbot",
+  "version": "1.0.2",
+  "private": true,
+  "description": "UCSD CSI chatbot with short, focused answers using crawler + semantic search (no external API). Skips PDFs/binary.",
+  "scripts": {
+    "start": "node server.js",
+    "ingest": "curl -X POST http://localhost:${PORT:-3000}/ingest"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "fs-extra": "^11.2.0",
+    "minisearch": "^6.3.0",
+    "p-queue": "^7.4.1",
+    "path": "^0.12.7",
+    "robots-parser": "^3.0.1"
+  }
+}
